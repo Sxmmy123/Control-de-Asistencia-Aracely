@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Inicio - Gestión de Asistencia</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+<div class="container py-4">
+  <h1 class="mb-4 text-center">Gestión de Asistencia</h1>
+
+  <div class="d-flex justify-content-between mb-3">
+    <button class="btn btn-primary" onclick="irAFechaActual()">Ir a Fecha Actual</button>
+    <button class="btn btn-success" onclick="agregarCurso()">Agregar Curso</button>
+    <button class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#modalExportar">Exportar Asistencia</button>
+  </div>
+
+  <div id="listaCursos"></div>
+</div>
+
+<!-- Modal de exportación -->
+<div class="modal fade" id="modalExportar" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Exportar Asistencia</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <label for="selectCurso" class="form-label">Curso:</label>
+        <select id="selectCurso" class="form-select mb-3"></select>
+
+        <label class="form-label">Meses a exportar:</label>
+        <div class="row row-cols-3" id="mesesContainer"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="exportarExcel()">Exportar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  let cursoExpandido = null;
+
+  function cargarCursos() {
+    const contenedor = document.getElementById("listaCursos");
+    contenedor.innerHTML = "";
+    const cursos = JSON.parse(localStorage.getItem("cursos")) || [];
+    const alumnos = JSON.parse(localStorage.getItem("alumnos")) || {};
+
+    const selectCurso = document.getElementById("selectCurso");
+    if (selectCurso) selectCurso.innerHTML = cursos.map(c => `<option>${c}</option>`).join("");
+
+    cursos.forEach((curso, idx) => {
+      const card = document.createElement("div");
+      card.className = "card mb-3";
+      const collapseId = `collapse-${idx}`;
+      card.innerHTML = `
+        <div class="card-header d-flex justify-content-between align-items-center" style="cursor: pointer;" onclick="toggleCollapse('${collapseId}', '${curso}')">
+          <strong>${curso}</strong>
+          <div>
+            <button class="btn btn-sm btn-outline-primary me-1" onclick="event.stopPropagation(); editarCurso(${idx})">Editar</button>
+            <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); eliminarCurso(${idx})">Eliminar</button>
+          </div>
+        </div>
+        <div class="collapse-body" id="${collapseId}" style="display: none;">
+          <ul class="list-group">
+            ${(alumnos[curso] || []).map((al, i) => `
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                ${al}
+                <div>
+                  <button class="btn btn-sm btn-outline-secondary me-1" onclick="editarAlumno('${curso}', ${i})">Editar</button>
+                  <button class="btn btn-sm btn-outline-danger" onclick="eliminarAlumno('${curso}', ${i})">Eliminar</button>
+                </div>
+              </li>`).join("")}
+          </ul>
+          <button class="btn btn-sm btn-outline-success mt-3" onclick="agregarAlumno('${curso}')">Agregar Alumno</button>
+        </div>`;
+      contenedor.appendChild(card);
+
+      if (curso === cursoExpandido) {
+        setTimeout(() => {
+          document.getElementById(collapseId).style.display = 'block';
+        }, 0);
+      }
+    });
+  }
+
+  function toggleCollapse(id, curso) {
+    const section = document.getElementById(id);
+    const isVisible = section.style.display === 'block';
+    document.querySelectorAll('.collapse-body').forEach(div => div.style.display = 'none');
+    section.style.display = isVisible ? 'none' : 'block';
+    cursoExpandido = isVisible ? null : curso;
+  }
+
+  function agregarCurso() {
+    const nombre = prompt("Nombre del curso:");
+    if (!nombre) return;
+
+    let cursos = JSON.parse(localStorage.getItem("cursos")) || [];
+    if (cursos.includes(nombre)) return alert("Ese curso ya existe.");
+    cursos.push(nombre);
+    localStorage.setItem("cursos", JSON.stringify(cursos));
+
+    let alumnos = JSON.parse(localStorage.getItem("alumnos")) || {};
+    alumnos[nombre] = [];
+    localStorage.setItem("alumnos", JSON.stringify(alumnos));
+
+    cargarCursos();
+  }
+
+  function editarCurso(idx) {
+    let cursos = JSON.parse(localStorage.getItem("cursos")) || [];
+    const nuevoNombre = prompt("Nuevo nombre del curso:", cursos[idx]);
+    if (!nuevoNombre || cursos.includes(nuevoNombre)) return;
+
+    const viejoNombre = cursos[idx];
+    cursos[idx] = nuevoNombre;
+
+    let alumnos = JSON.parse(localStorage.getItem("alumnos")) || {};
+    alumnos[nuevoNombre] = alumnos[viejoNombre];
+    delete alumnos[viejoNombre];
+
+    let diasCurso = JSON.parse(localStorage.getItem("diasCurso")) || {};
+    for (let fecha in diasCurso) {
+      diasCurso[fecha] = diasCurso[fecha].map(c => c === viejoNombre ? nuevoNombre : c);
+    }
+
+    localStorage.setItem("cursos", JSON.stringify(cursos));
+    localStorage.setItem("alumnos", JSON.stringify(alumnos));
+    localStorage.setItem("diasCurso", JSON.stringify(diasCurso));
+    cargarCursos();
+  }
+
+  function eliminarCurso(idx) {
+    if (!confirm("¿Seguro que quieres eliminar este curso?")) return;
+
+    let cursos = JSON.parse(localStorage.getItem("cursos")) || [];
+    const nombre = cursos.splice(idx, 1)[0];
+    localStorage.setItem("cursos", JSON.stringify(cursos));
+
+    let alumnos = JSON.parse(localStorage.getItem("alumnos")) || {};
+    delete alumnos[nombre];
+    localStorage.setItem("alumnos", JSON.stringify(alumnos));
+
+    let diasCurso = JSON.parse(localStorage.getItem("diasCurso")) || {};
+    for (let fecha in diasCurso) {
+      diasCurso[fecha] = diasCurso[fecha].filter(c => c !== nombre);
+    }
+    localStorage.setItem("diasCurso", JSON.stringify(diasCurso));
+
+    cargarCursos();
+  }
+
+  function agregarAlumno(curso) {
+    cursoExpandido = curso;
+    let alumnos = JSON.parse(localStorage.getItem("alumnos")) || {};
+    const nombre = prompt("Nombre del alumno:");
+    if (!nombre) return;
+    alumnos[curso].push(nombre);
+    localStorage.setItem("alumnos", JSON.stringify(alumnos));
+    cargarCursos();
+  }
+
+  function editarAlumno(curso, idx) {
+    cursoExpandido = curso;
+    let alumnos = JSON.parse(localStorage.getItem("alumnos")) || {};
+    const nuevoNombre = prompt("Nuevo nombre del alumno:", alumnos[curso][idx]);
+    if (!nuevoNombre) return;
+    alumnos[curso][idx] = nuevoNombre;
+    localStorage.setItem("alumnos", JSON.stringify(alumnos));
+    cargarCursos();
+  }
+
+  function eliminarAlumno(curso, idx) {
+    if (!confirm("¿Eliminar alumno?")) return;
+    cursoExpandido = curso;
+    let alumnos = JSON.parse(localStorage.getItem("alumnos")) || {};
+    alumnos[curso].splice(idx, 1);
+    localStorage.setItem("alumnos", JSON.stringify(alumnos));
+    cargarCursos();
+  }
+
+  function irAFechaActual() {
+    const hoy = new Date();
+    const anio = hoy.getFullYear();
+    const mes = hoy.getMonth() + 1;
+    const dia = hoy.getDate();
+    window.location.href = `dia.html?anio=${anio}&mes=${mes}&dia=${dia}`;
+  }
+function exportarExcel() {
+  const curso = document.getElementById("selectCurso").value;
+  const mesesSeleccionados = [...document.querySelectorAll("input[name='mes']:checked")].map(el => parseInt(el.value));
+  if (!mesesSeleccionados.length) return alert("Selecciona al menos un mes.");
+
+  const alumnos = JSON.parse(localStorage.getItem("alumnos")) || {};
+  const asistencias = JSON.parse(localStorage.getItem("asistencias")) || {};
+
+  const wb = XLSX.utils.book_new();
+  const anio = new Date().getFullYear();
+
+  mesesSeleccionados.forEach(mes => {
+    const diasMes = new Date(anio, mes, 0).getDate();
+    const datos = [["Nombre"]];
+
+    // Encabezado con días laborables
+    for (let dia = 1; dia <= diasMes; dia++) {
+      const fecha = new Date(anio, mes - 1, dia);
+      const diaSemana = fecha.getDay();
+      datos[0].push(diaSemana === 0 || diaSemana === 6 ? "" : dia);
+    }
+    // Totales
+    datos[0].push("P", "F", "A", "L");
+
+    // Filas de alumnos
+    (alumnos[curso] || []).forEach(nombre => {
+      const fila = [nombre];
+      let total = { P: 0, F: 0, A: 0, L: 0 };
+
+      for (let dia = 1; dia <= diasMes; dia++) {
+        const fecha = new Date(anio, mes - 1, dia);
+        const diaSemana = fecha.getDay();
+        const clave = `${anio}-${String(mes).padStart(2,'0')}-${String(dia).padStart(2,'0')}|${curso}|${nombre}`;
+        let estado = "";
+
+        if (diaSemana !== 0 && diaSemana !== 6) {
+          estado = asistencias[clave] || "blanco";
+          const cod = { blanco: "F", verde: "P", amarillo: "A", morado: "L" }[estado];
+          fila.push(cod);
+          if (cod) total[cod]++;
+        } else {
+          fila.push("");
+        }
+      }
+
+      fila.push(total["P"], total["F"], total["A"], total["L"]);
+      datos.push(fila);
+    });
+
+    const hoja = XLSX.utils.aoa_to_sheet(datos);
+
+    // Definir ancho de columnas
+    const totalCols = datos[0].length;
+    hoja['!cols'] = [{ wch: 25 }, ...Array(totalCols - 1).fill({ wch: 2.5 })];
+
+    XLSX.utils.book_append_sheet(wb, hoja, `${curso}_${mes}`);
+  });
+
+  XLSX.writeFile(wb, `Asistencia_${curso}.xlsx`);
+  const modal = bootstrap.Modal.getInstance(document.getElementById("modalExportar"));
+  modal.hide();
+}
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const mesesContainer = document.getElementById("mesesContainer");
+    for (let i = 1; i <= 12; i++) {
+      const mes = new Date(0, i - 1).toLocaleString('es-ES', { month: 'long' });
+      mesesContainer.innerHTML += `
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" name="mes" value="${i}" id="mes${i}"/>
+          <label class="form-check-label" for="mes${i}">${mes}</label>
+        </div>`;
+    }
+    cargarCursos();
+  });
+</script>
+</body>
+</html>
