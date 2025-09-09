@@ -9,83 +9,66 @@
 </head>
 <body>
 <div class="container py-4">
-<h1 class="mb-4 text-center">Gestión de Asistencia</h1>
+  <h1 class="mb-4 text-center">Gestión de Asistencia</h1>
 
-<div class="d-flex justify-content-between mb-3">
-  <button class="btn btn-primary" onclick="irAFechaActual()">Ir a Fecha Actual</button>
-  <button class="btn btn-success" onclick="agregarCurso()">Agregar Curso</button>
-  <button class="btn btn-warning" onclick="editarHorario()">Editar Horario</button>
-  <button class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#modalExportar">Exportar Asistencia</button>
-</div>
+  <div class="d-flex justify-content-between mb-3">
+    <button class="btn btn-primary" onclick="irAFechaActual()">Ir a Fecha Actual</button>
+    <button class="btn btn-success" onclick="agregarCurso()">Agregar Curso</button>
+    <button class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#modalExportar">Exportar Asistencia</button>
+  </div>
 
-<div id="listaCursos"></div>
+  <div id="listaCursos"></div>
 </div>
 
 <!-- Modal de exportación -->
 <div class="modal fade" id="modalExportar" tabindex="-1" aria-hidden="true">
-<div class="modal-dialog">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h5 class="modal-title">Exportar Asistencia</h5>
-      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-    </div>
-    <div class="modal-body">
-      <label for="selectCurso" class="form-label">Curso:</label>
-      <select id="selectCurso" class="form-select mb-3"></select>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Exportar Asistencia</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <label for="selectCurso" class="form-label">Curso:</label>
+        <select id="selectCurso" class="form-select mb-3"></select>
 
-      <label class="form-label">Meses a exportar:</label>
-      <div class="row row-cols-3" id="mesesContainer"></div>
-    </div>
-    <div class="modal-footer">
-      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-      <button type="button" class="btn btn-primary" onclick="exportarExcel()">Exportar</button>
+        <label class="form-label">Meses a exportar:</label>
+        <div class="row row-cols-3" id="mesesContainer"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="exportarExcel()">Exportar</button>
+      </div>
     </div>
   </div>
 </div>
-</div>
 
-<!-- Modal de horario -->
-<div class="modal fade" id="modalHorario" tabindex="-1" aria-hidden="true">
-<div class="modal-dialog modal-lg modal-dialog-centered">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h5 class="modal-title">Editar Horario Escolar</h5>
-      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-    </div>
-    <div class="modal-body">
-      <table class="table table-bordered" id="tablaHorario">
-        <thead>
-          <tr>
-            <th>Hora Inicio</th>
-            <th>Hora Fin</th>
-            <th>Lunes</th>
-            <th>Martes</th>
-            <th>Miércoles</th>
-            <th>Jueves</th>
-            <th>Viernes</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- Se generará dinámicamente -->
-        </tbody>
-      </table>
-      <button class="btn btn-sm btn-outline-success" onclick="agregarFilaHorario()">Agregar fila de horario</button>
-    </div>
-    <div class="modal-footer">
-      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-      <button type="button" class="btn btn-primary" onclick="guardarHorario()">Guardar</button>
+<!-- Modal para agregar alumnos en bloque -->
+<div class="modal fade" id="modalAlumnosBloque" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Agregar Alumnos por cantidad</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <label for="textareaAlumnos" class="form-label">Pega la lista de alumnos (un alumno por línea):</label>
+        <textarea id="textareaAlumnos" class="form-control" rows="10" placeholder="Ejemplo:
+ALANOCA LINARES ANGEL
+CAHUANA SALLAMA JUAN ISAIAS
+CESPEDES BUCHAPI NAYARA KALEXIA"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-success" onclick="guardarAlumnosBloque()">Guardar</button>
+      </div>
     </div>
   </div>
-</div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-const materiasPorDefecto = [
-  "Com. y Lenguajes","Cs.Sociales","Edu.Fís.y Dep.","Edu.Musical",
-  "Art.Plast. y Vis.","Matemática","T.Tecnológica","Cs.Naturales","Val.Esp.y Relig."
-];
-
+let cursoSeleccionadoBloque = null;
 let cursoExpandido = null;
 
 // ====================== CURSOS Y ALUMNOS =========================
@@ -120,7 +103,10 @@ function cargarCursos() {
               </div>
             </li>`).join('')}
         </ul>
-        <button class="btn btn-sm btn-outline-success mt-3" onclick="agregarAlumno('${curso}')">Agregar Alumno</button>
+        <div class="mt-3 d-flex gap-2">
+          <button class="btn btn-sm btn-outline-success" onclick="agregarAlumno('${curso}')">Agregar Alumno</button>
+          <button class="btn btn-sm btn-outline-primary" onclick="abrirModalAlumnosBloque('${curso}')">Agregar Alumnos por cantidad</button>
+        </div>
       </div>`;
     contenedor.appendChild(card);
     if(curso===cursoExpandido){setTimeout(()=>{document.getElementById(collapseId).style.display='block'},0)}
@@ -135,68 +121,26 @@ function agregarAlumno(curso){cursoExpandido=curso;let alumnos=JSON.parse(localS
 function editarAlumno(curso,idx){cursoExpandido=curso;let alumnos=JSON.parse(localStorage.getItem("alumnos"))||{};const nuevoNombre=prompt("Nuevo nombre del alumno:",alumnos[curso][idx]);if(!nuevoNombre)return;alumnos[curso][idx]=nuevoNombre;localStorage.setItem("alumnos",JSON.stringify(alumnos));cargarCursos()}
 function eliminarAlumno(curso,idx){if(!confirm("Eliminar alumno?"))return;cursoExpandido=curso;let alumnos=JSON.parse(localStorage.getItem("alumnos"))||{};alumnos[curso].splice(idx,1);localStorage.setItem("alumnos",JSON.stringify(alumnos));cargarCursos()}
 
-// ====================== HORARIO =========================
-function editarHorario(){
-  const horario = JSON.parse(localStorage.getItem("horario"))||[
-    {inicio:"08:00",fin:"09:00",Lunes:"Matemática",Martes:"Cs.Sociales",Miercoles:"Com. y Lenguajes",Jueves:"T.Tecnológica",Viernes:"Cs.Naturales"},
-    {inicio:"09:00",fin:"10:00",Lunes:"Com. y Lenguajes",Martes:"Matemática",Miercoles:"Art.Plast. y Vis.",Jueves:"Edu.Fís.y Dep.",Viernes:"Edu.Musical"}
-  ];
-
-  const tbody=document.querySelector("#tablaHorario tbody");
-  tbody.innerHTML="";
-
-  horario.forEach((fila,i)=>{
-    const tr=document.createElement("tr");
-
-    const tdInicio=document.createElement("td");
-    const inputInicio=document.createElement("input");inputInicio.type="time";inputInicio.value=fila.inicio;inputInicio.className="form-control";tdInicio.appendChild(inputInicio);
-    tr.appendChild(tdInicio);
-
-    const tdFin=document.createElement("td");
-    const inputFin=document.createElement("input");inputFin.type="time";inputFin.value=fila.fin;inputFin.className="form-control";tdFin.appendChild(inputFin);
-    tr.appendChild(tdFin);
-
-    ["Lunes","Martes","Miercoles","Jueves","Viernes"].forEach(dia=>{
-      const td=document.createElement("td");
-      const select=document.createElement("select");select.className="form-select";
-      select.innerHTML=materiasPorDefecto.map(m=>`<option value="${m}" ${fila[dia]===m?"selected":""}>${m}</option>`).join("");
-      td.appendChild(select);
-      tr.appendChild(td);
-    });
-
-    tbody.appendChild(tr);
-  });
-
-  const modal=new bootstrap.Modal(document.getElementById("modalHorario"));
-  modal.show();
+// ====================== Alumnos en bloque =========================
+function abrirModalAlumnosBloque(curso){
+  cursoSeleccionadoBloque = curso;
+  document.getElementById("textareaAlumnos").value = "";
+  new bootstrap.Modal(document.getElementById("modalAlumnosBloque")).show();
 }
 
-function agregarFilaHorario(){
-  const tbody=document.querySelector("#tablaHorario tbody");
-  const tr=document.createElement("tr");
+function guardarAlumnosBloque(){
+  const texto = document.getElementById("textareaAlumnos").value.trim();
+  if(!texto) return alert("Pegue al menos un nombre.");
+  let lista = texto.split("\n").map(l=>l.trim()).filter(l=>l.length>0);
 
-  const tdInicio=document.createElement("td"); const inputInicio=document.createElement("input"); inputInicio.type="time"; inputInicio.className="form-control"; tdInicio.appendChild(inputInicio); tr.appendChild(tdInicio);
-  const tdFin=document.createElement("td"); const inputFin=document.createElement("input"); inputFin.type="time"; inputFin.className="form-control"; tdFin.appendChild(inputFin); tr.appendChild(tdFin);
+  let alumnos = JSON.parse(localStorage.getItem("alumnos")) || {};
+  if(!alumnos[cursoSeleccionadoBloque]) alumnos[cursoSeleccionadoBloque] = [];
+  alumnos[cursoSeleccionadoBloque].push(...lista);
+  localStorage.setItem("alumnos", JSON.stringify(alumnos));
 
-  ["Lunes","Martes","Miercoles","Jueves","Viernes"].forEach(_=>{const td=document.createElement("td");const select=document.createElement("select");select.className="form-select";select.innerHTML=materiasPorDefecto.map(m=>`<option value="${m}">${m}</option>`).join("");td.appendChild(select);tr.appendChild(td);});
-
-  tbody.appendChild(tr);
-}
-
-function guardarHorario(){
-  const tbody=document.querySelector("#tablaHorario tbody");
-  const filas=tbody.querySelectorAll("tr");
-  const nuevoHorario=[];
-  filas.forEach(tr=>{
-    const inputs=tr.querySelectorAll("input,select");
-    const filaObj={inicio:inputs[0].value,fin:inputs[1].value,Lunes:inputs[2].value
-,Miercoles:inputs[3].value,Martes:inputs[4].value,Jueves:inputs[5].value,Viernes:inputs[6].value};
-    nuevoHorario.push(filaObj);
-  });
-
-  localStorage.setItem("horario", JSON.stringify(nuevoHorario));
-  const modal = bootstrap.Modal.getInstance(document.getElementById("modalHorario"));
-  modal.hide();
+  bootstrap.Modal.getInstance(document.getElementById("modalAlumnosBloque")).hide();
+  cursoExpandido = cursoSeleccionadoBloque;
+  cargarCursos();
 }
 
 // ====================== NAVEGACION =========================
@@ -218,48 +162,69 @@ document.addEventListener("DOMContentLoaded",()=>{
   cargarCursos();
 });
 
-function exportarExcel(){
-  const curso=document.getElementById("selectCurso").value;
-  const mesesSeleccionados=[...document.querySelectorAll("input[name='mes']:checked")].map(el=>parseInt(el.value));
-  if(!mesesSeleccionados.length) return alert("Selecciona al menos un mes.");
+function exportarExcel() {
+  const curso = document.getElementById("selectCurso").value;
+  const mesesSeleccionados = [...document.querySelectorAll("input[name='mes']:checked")].map(el => parseInt(el.value));
+  if (!mesesSeleccionados.length) return alert("Selecciona al menos un mes.");
 
-  const alumnos=JSON.parse(localStorage.getItem("alumnos"))||{};
-  const asistencias=JSON.parse(localStorage.getItem("asistencias"))||{};
-  const horario=JSON.parse(localStorage.getItem("horario"))||[];
+  const alumnos = JSON.parse(localStorage.getItem("alumnos")) || {};
+  const asistencias = JSON.parse(localStorage.getItem("asistencias")) || {};
 
-  const wb=XLSX.utils.book_new();
-  const anio=new Date().getFullYear();
+  const wb = XLSX.utils.book_new();
+  const anio = new Date().getFullYear();
 
-  mesesSeleccionados.forEach(mes=>{
-    const diasMes=new Date(anio,mes,0).getDate();
-    const datos=[["Nombre",...Array.from({length:diasMes},(_,d)=>d+1),"P","F","A","L"]];
+  mesesSeleccionados.forEach(mes => {
+    const diasMes = new Date(anio, mes, 0).getDate();
+    const datos = [["Nombre"]];
 
-    (alumnos[curso]||[]).forEach(nombre=>{
-      const fila=[nombre];
-      let total={P:0,F:0,A:0,L:0};
-      for(let dia=1;dia<=diasMes;dia++){
-        const fecha=`${anio}-${String(mes).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
-        const cod=asistencias[`${fecha}|${curso}|${nombre}`]||"";
-        fila.push(cod);
-        if(cod in total) total[cod]++;
+    // Encabezado con días laborables
+    for (let dia = 1; dia <= diasMes; dia++) {
+      const fecha = new Date(anio, mes - 1, dia);
+      const diaSemana = fecha.getDay();
+      datos[0].push(diaSemana === 0 || diaSemana === 6 ? "" : dia);
+    }
+    // Totales
+    datos[0].push("P", "F", "A", "L");
+
+    // Filas de alumnos
+    (alumnos[curso] || []).forEach(nombre => {
+      const fila = [nombre];
+      let total = { P: 0, F: 0, A: 0, L: 0 };
+
+      for (let dia = 1; dia <= diasMes; dia++) {
+        const fecha = new Date(anio, mes - 1, dia);
+        const diaSemana = fecha.getDay();
+        const clave = `${anio}-${String(mes).padStart(2,'0')}-${String(dia).padStart(2,'0')}|${curso}|${nombre}`;
+        let estado = "";
+
+        if (diaSemana !== 0 && diaSemana !== 6) {
+          estado = asistencias[clave] || "blanco";
+          const cod = { blanco: "F", verde: "P", amarillo: "A", morado: "L" }[estado];
+          fila.push(cod);
+          if (cod) total[cod]++; 
+        } else {
+          fila.push("");
+        }
       }
-      fila.push(total["P"],total["F"],total["A"],total["L"]);
+
+      fila.push(total["P"], total["F"], total["A"], total["L"]);
       datos.push(fila);
     });
 
-    const hoja=XLSX.utils.aoa_to_sheet(datos);
+    const hoja = XLSX.utils.aoa_to_sheet(datos);
 
-    // Definir anchos de columna: primera 25, resto 2.5
-    const wscols=[{wch:25},...Array(diasMes+4).fill({wch:2.5})];
-    hoja['!cols']=wscols;
+    // Definir ancho de columnas
+    const totalCols = datos[0].length;
+    hoja['!cols'] = [{ wch: 25 }, ...Array(totalCols - 1).fill({ wch: 2.5 })];
 
-    XLSX.utils.book_append_sheet(wb,hoja,`${curso}_${mes}`);
+    XLSX.utils.book_append_sheet(wb, hoja, `${curso}_${mes}`);
   });
 
-  XLSX.writeFile(wb,`Asistencia_${curso}.xlsx`);
-  const modal=bootstrap.Modal.getInstance(document.getElementById("modalExportar"));
+  XLSX.writeFile(wb, `Asistencia_${curso}.xlsx`);
+  const modal = bootstrap.Modal.getInstance(document.getElementById("modalExportar"));
   modal.hide();
 }
 </script>
 </body>
 </html>
+
