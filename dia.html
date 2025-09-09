@@ -58,41 +58,64 @@
     .color-verde { background-color: #d4edda; }
     .color-amarillo { background-color: #fff3cd; }
     .color-morado { background-color: #e0c3fc; }
+
+    /* Animaciones de deslizamiento */
+    .slide-container {
+      transition: transform 0.4s ease, opacity 0.4s ease;
+    }
+    .slide-left {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+    .slide-right {
+      transform: translateX(100%);
+      opacity: 0;
+    }
   </style>
 </head>
 <body>
-<div class="container py-4">
+<div class="container py-4 slide-container" id="slideContainer">
+
+  <!-- FILA 1: Navegación general -->
   <div class="d-flex justify-content-between mb-3">
-    <button class="btn btn-outline-secondary" onclick="volverAlMes()">⟵ Volver al mes</button>
     <button class="btn btn-outline-primary" onclick="volverAlInicio()">🏠 Inicio</button>
+    <button class="btn btn-outline-secondary" onclick="volverAlMes()">📅 Volver al mes</button>
   </div>
 
+  <!-- FILA 2: Navegación entre días -->
   <div class="d-flex justify-content-between mb-3">
-    <button class="btn btn-outline-dark" onclick="cambiarDia(-1)">⬅ Día anterior</button>
-    <button class="btn btn-outline-dark" onclick="cambiarDia(1)">Día siguiente ➡</button>
+    <button class="btn btn-outline-dark" onclick="animarCambio(-1)">⬅ Día anterior</button>
+    <button class="btn btn-outline-dark" onclick="animarCambio(1)">Día siguiente ➡</button>
   </div>
 
-  <h2 id="tituloDia" class="mb-4 text-center"></h2>
-
+  <h2 id="tituloDia" class="mb-1 text-center"></h2>
+   <h6 class="mb-1 text-center">Codigo de colores</h6>
+  <!-- Leyenda de colores -->
   <div class="leyenda">
-    <div class="leyenda-item"><div class="cuadro-color color-blanco"></div> Blanco: Falta</div>
-    <div class="leyenda-item"><div class="cuadro-color color-verde"></div> Verde: Asistencia</div>
-    <div class="leyenda-item"><div class="cuadro-color color-amarillo"></div> Amarillo: Atraso</div>
-    <div class="leyenda-item"><div class="cuadro-color color-morado"></div> Morado: Permiso</div>
+    <div class="leyenda-item color-blanco">Falta</div>
+    <div class="leyenda-item color-verde">Asistencia</div>
+    <div class="leyenda-item color-amarillo">Atraso</div>
+    <div class="leyenda-item color-morado">Permiso</div>
   </div>
+
+  <!-- Aquí se cargan los cursos y alumnos -->
   <div id="detalleCursos"></div>
 </div>
 
-<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 <script>
   const params = new URLSearchParams(window.location.search);
   let anio = parseInt(params.get("anio"));
   let mes = parseInt(params.get("mes"));
   let dia = parseInt(params.get("dia"));
 
-  const nombreMeses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-                       "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-  const diasSemana = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sabado"];
+  const nombreMeses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio",
+                       "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+  const diasSemana = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sabado"];
+
+  const hoy = new Date();
+  const esHoy = hoy.getFullYear() === anio &&
+                hoy.getMonth() + 1 === mes &&
+                hoy.getDate() === dia;
 
   function claveDeFecha() {
     return `${anio}-${mes.toString().padStart(2, "0")}-${dia.toString().padStart(2, "0")}`;
@@ -106,22 +129,24 @@
     window.location.href = `index.html`;
   }
 
-function cambiarDia(delta) {
-  let nuevaFecha = new Date(anio, mes - 1, dia + delta);
-  
-  // Saltar fines de semana
-  while (nuevaFecha.getDay() === 0 || nuevaFecha.getDay() === 6) { // 0 = domingo, 6 = sábado
-    nuevaFecha.setDate(nuevaFecha.getDate() + (delta > 0 ? 1 : -1));
+  function cambiarDia(delta) {
+    let nuevaFecha = new Date(anio, mes - 1, dia + delta);
+    while (nuevaFecha.getDay() === 0 || nuevaFecha.getDay() === 6) {
+      nuevaFecha.setDate(nuevaFecha.getDate() + (delta > 0 ? 1 : -1));
+    }
+    anio = nuevaFecha.getFullYear();
+    mes = nuevaFecha.getMonth() + 1;
+    dia = nuevaFecha.getDate();
+    window.location.href = `dia.html?anio=${anio}&mes=${mes}&dia=${dia}`;
   }
 
-  anio = nuevaFecha.getFullYear();
-  mes = nuevaFecha.getMonth() + 1;
-  dia = nuevaFecha.getDate();
-  window.location.href = `dia.html?anio=${anio}&mes=${mes}&dia=${dia}`;
-
+  function animarCambio(delta) {
+    const cont = document.getElementById("slideContainer");
+    cont.classList.add(delta > 0 ? "slide-left" : "slide-right");
+    setTimeout(() => cambiarDia(delta), 400);
   }
 
-  function mostrarInformacion() {
+  function mostrarInformacion(modoEdicion = false) {
     const fecha = new Date(anio, mes - 1, dia);
     document.getElementById("tituloDia").innerText =
       `${diasSemana[fecha.getDay()]}, ${dia} de ${nombreMeses[mes - 1]} de ${anio}`;
@@ -131,7 +156,6 @@ function cambiarDia(delta) {
 
     const alumnosPorCurso = JSON.parse(localStorage.getItem("alumnos")) || {};
     const asistencias = JSON.parse(localStorage.getItem("asistencias")) || {};
-
     const cursos = Object.keys(alumnosPorCurso);
 
     if (cursos.length === 0) {
@@ -164,12 +188,14 @@ function cambiarDia(delta) {
           divAlumno.className = `asistencia-item ${estadoColor}`;
           divAlumno.textContent = nombre;
 
-          divAlumno.onclick = () => {
-            const nuevoEstado = obtenerSiguienteEstado(estado);
-            asistencias[claveAlumno] = nuevoEstado;
-            localStorage.setItem("asistencias", JSON.stringify(asistencias));
-            mostrarInformacion();
-          };
+          if (esHoy || modoEdicion) {
+            divAlumno.onclick = () => {
+              const nuevoEstado = obtenerSiguienteEstado(estado);
+              asistencias[claveAlumno] = nuevoEstado;
+              localStorage.setItem("asistencias", JSON.stringify(asistencias));
+              mostrarInformacion(modoEdicion);
+            };
+          }
 
           div.appendChild(divAlumno);
         });
@@ -177,6 +203,14 @@ function cambiarDia(delta) {
 
       detalleContainer.appendChild(div);
     });
+
+    if (!esHoy && !modoEdicion) {
+      const btnEditar = document.createElement("button");
+      btnEditar.className = "btn btn-sm btn-warning mt-3";
+      btnEditar.textContent = "✏️ Editar asistencia";
+      btnEditar.onclick = () => mostrarInformacion(true);
+      detalleContainer.appendChild(btnEditar);
+    }
   }
 
   function obtenerSiguienteEstado(estadoActual) {
@@ -193,4 +227,5 @@ function cambiarDia(delta) {
 </script>
 </body>
 </html>
+
 
